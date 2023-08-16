@@ -13,11 +13,15 @@ inputs:
   analysis_suite:
     description: "Name of the analysis suite (ruleset) to validate with."
     required: true
-
-# the following secrets are required:
-# incquery_username : username to https://artifacts.incquery.io/
-# incquery_password : password to https://artifacts.incquery.io/
-# incquery_ea_validator_license : the contents of the supplied license file
+  incquery_username:
+    description: "Username to https://artifacts.incquery.io/"
+    required: true
+  incquery_password:
+    description: "Password to https://artifacts.incquery.io/"
+    required: true
+  incquery_ea_validator_license:
+    description: "The contents of the supplied license file."
+    required: true
 
 runs:
   using: "composite"
@@ -26,8 +30,8 @@ runs:
       shell: pwsh
       run: |
         $setupWebUrl = "https://artifacts.incquery.io/incquery-suite/incquery-validator-for-ea/IncQuery%20Validator%20for%20Enterprise%20Architect%202023.1.2%20Setup.exe"
-        $user = "${{ secrets.incquery_username }}"
-        $pass= "${{ secrets.incquery_password }}"
+        $user = "${{ inputs.incquery_username }}"
+        $pass= "${{ inputs.incquery_password }}"
         $secpasswd = ConvertTo-SecureString $pass -AsPlainText -Force
         $credential = New-Object System.Management.Automation.PSCredential($user, $secpasswd)
         Invoke-WebRequest $setupWebUrl -Credential $credential -OutFile "${{ runner.temp }}/IncQuery Validator for Enterprise Architect Setup.exe"
@@ -36,7 +40,7 @@ runs:
       shell: pwsh
       run: |
         Start-Process -FilePath '${{ runner.temp }}/IncQuery Validator for Enterprise Architect Setup.exe' -ArgumentList @("/install", "/quiet") -Wait
-        echo '${{ secrets.incquery_ea_validator_license }}' | Out-File -FilePath '${{ runner.temp }}/IncQueryValidatorLicense.lic'
+        echo '${{ inputs.incquery_ea_validator_license }}' | Out-File -FilePath '${{ runner.temp }}/IncQueryValidatorLicense.lic'
 
     - name: Run validation
       shell: pwsh
