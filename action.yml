@@ -37,7 +37,7 @@ runs:
       run: |
         Start-Process -FilePath '${{ runner.temp }}/IncQuery Validator for Enterprise Architect Setup.exe' -ArgumentList @("/install", "/quiet") -Wait
         echo '${{ secrets.incquery_ea_validator_license }}' | Out-File -FilePath '${{ runner.temp }}/IncQueryValidatorLicense.lic'
-     
+
     - name: Run validation
       shell: pwsh
       run: |
