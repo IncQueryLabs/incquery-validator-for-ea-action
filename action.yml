@@ -4,7 +4,7 @@
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 name: IncQuery Validator for Enterprise Architect
-description: 'This action downloads and installs the IncQuery Validator for Enterprise Architect, then runs a validation on the given model with the given ruleset.
+description: This action downloads and installs the IncQuery Validator for Enterprise Architect, then runs a validation on the given model with the given ruleset.
 
 inputs:
   model_file_path:
