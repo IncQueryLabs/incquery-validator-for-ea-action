@@ -105,14 +105,13 @@ runs:
             if ( $info     -ne 0 ) { $msg += "| :information_source: | Info    | $info     |`r`n" }
             if ( $debug    -ne 0 ) { $msg += "| :grey_question:      | Debug   | $debug    |`r`n" }
           }
-          
         }
         else
         {
           $msg += "No issues found. :+1:`r`n"
         }
         
-        $msg += "`r`nTo download the full report click [here](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}).
+        $msg += "`r`nTo download the full report click [here](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})."
         
         $msg | Out-File -FilePath '${{ runner.temp }}/pr_comment.txt'
 
