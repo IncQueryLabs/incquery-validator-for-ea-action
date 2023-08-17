@@ -7,7 +7,10 @@
 
 name: Example for using IncQueryLabs/incquery-validator-for-ea-action
 
-on: [push]
+on:
+  push:
+  pull_request:
+    types: [opened]
 
 jobs:
   IncQueryValidatorForEA:
