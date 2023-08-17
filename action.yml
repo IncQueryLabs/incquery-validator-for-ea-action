@@ -120,8 +120,8 @@ runs:
       if: ${{ inputs.comment_on_pr == 'true' }}
       continue-on-error: true
       uses: thollander/actions-comment-pull-request@v2
-        with:
-          filePath: '${{ runner.temp }}/pr_comment.txt'
+      with:
+        filePath: '${{ runner.temp }}/pr_comment.txt'
 
 branding:
   icon: 'box'
