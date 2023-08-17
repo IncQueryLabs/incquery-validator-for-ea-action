@@ -22,33 +22,29 @@ inputs:
   incquery_ea_validator_license:
     description: "The contents of the supplied license file."
     required: true
-  incquery_ea_validator_is_preinstalled:
-    description: "Set to 'true' in case the Validator is already installed on the machine running the action."
-    required: false
-    default: 'false'
 
 runs:
   using: "composite"
   steps:
-    - name: Download the installer
+    - name: Download and install IncQuery Validator for Enterprise Architect
       shell: pwsh
-      if: ${{ inputs.incquery_ea_validator_is_preinstalled != 'true' }}
       run: |
-        $setupWebUrl = "https://artifacts.incquery.io/incquery-suite/incquery-validator-for-ea/IncQuery%20Validator%20for%20Enterprise%20Architect%202023.1.2%20Setup.exe"
-        $user = "${{ inputs.incquery_username }}"
-        $pass= "${{ inputs.incquery_password }}"
-        if ( $user.Length -eq 0 ) { exit 1 }
-        if ( $pass.Length -eq 0 ) { exit 1 }
-        $secpasswd = ConvertTo-SecureString $pass -AsPlainText -Force
-        $credential = New-Object System.Management.Automation.PSCredential($user, $secpasswd)
-        Invoke-WebRequest $setupWebUrl -Credential $credential -OutFile "${{ runner.temp }}/IncQuery Validator for Enterprise Architect Setup.exe"
-
-    - name: Install IncQuery Validator for Enterprise Architect
-      shell: pwsh
-      if: ${{ inputs.incquery_ea_validator_is_preinstalled != 'true' }}
-      run: |
-        Start-Process -FilePath '${{ runner.temp }}/IncQuery Validator for Enterprise Architect Setup.exe' -ArgumentList @("/install", "/quiet") -Wait
-
+        if (Test-Path -Path 'C:\Program Files\IncQuery Labs\IncQuery Validator for Enterprise Architect\CI\run_validation.ps1' -PathType Leaf )
+        {
+          $setupWebUrl = "https://artifacts.incquery.io/incquery-suite/incquery-validator-for-ea/IncQuery%20Validator%20for%20Enterprise%20Architect%202023.1.2%20Setup.exe"
+          $user = "${{ inputs.incquery_username }}"
+          $pass= "${{ inputs.incquery_password }}"
+          if ( $user.Length -eq 0 ) { exit 1 }
+          if ( $pass.Length -eq 0 ) { exit 1 }
+          $secpasswd = ConvertTo-SecureString $pass -AsPlainText -Force
+          $credential = New-Object System.Management.Automation.PSCredential($user, $secpasswd)
+          Invoke-WebRequest $setupWebUrl -Credential $credential -OutFile "${{ runner.temp }}/IncQuery Validator for Enterprise Architect Setup.exe"
+          Start-Process -FilePath '${{ runner.temp }}/IncQuery Validator for Enterprise Architect Setup.exe' -ArgumentList @("/install", "/quiet") -Wait
+        }
+        else
+        {
+          echo "IncQuery Validator for Enterprise Architect is already installed."
+        }
     - name: Create the license file
       shell: pwsh
       run: |
