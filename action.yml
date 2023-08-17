@@ -22,6 +22,10 @@ inputs:
   license:
     description: "The contents of the supplied license file."
     required: true
+  comment_on_pr:
+    description: "Comment on the pull request with the result of the analysis."
+    required: false
+    default: 'false'
 
 runs:
   using: "composite"
@@ -36,6 +40,7 @@ runs:
         else
         {
           $setupWebUrl = "https://artifacts.incquery.io/incquery-suite/incquery-validator-for-ea/IncQuery%20Validator%20for%20Enterprise%20Architect%202023.1.2%20Setup.exe"
+          $setupWebUrl = "https://build.incquerylabs.com/nexus/repository/lieberlieber-collaboration-raw/validator-for-ea/release-2023.2.0-alpha/IncQuery%20Validator%20for%20Enterprise%20Architect%202023.2.0-alpha%20Setup.exe"
           $user = "${{ inputs.incquery_username }}"
           $pass= "${{ inputs.incquery_password }}"
           if ( $user.Length -eq 0 ) { exit 1 }
@@ -60,6 +65,63 @@ runs:
       with:
         name: "${{ inputs.analysis_suite }} analysis result"
         path: ${{ runner.temp }}/validation_result/
+
+    - name: "Create PR comment content"
+      shell: pwsh
+      if: ${{ inputs.comment_on_pr == 'true' }}
+      run: |  
+        $result = Import-Csv -Path "${{ runner.temp }}/validation_result/kpi_summary.csv" -Header level,number 
+        $msg = "## ![validator_icon](https://github.com/IncQueryLabs/incquery-suite-ea-connector/assets/39518109/7e00edf1-630d-47f8-b37e-cd8f5c0875f0) IncQuery Validator for Enterprise Architect `r`nAnalysis were executed on **${{ inputs.model_file_path }}** with **${{ inputs.analysis_suite }}**.`r`n`r`n"
+        
+        if (  $result.Count -gt 1 )
+        {
+          $fatals   = $result | where { $_.level.StartsWith("fatal error") }
+          $errors   = $result | where { $_.level.StartsWith("errors")      }
+          $warnings = $result | where { $_.level.StartsWith("warnings")    }
+          $info     = $result | where { $_.level.StartsWith("info")        }
+          $debug    = $result | where { $_.level.StartsWith("debug")       }
+          
+          $fatals   = if ($fatals)   { $fatals.number   } else { 0 }
+          $errors   = if ($errors)   { $errors.number   } else { 0 }
+          $warnings = if ($warnings) { $warnings.number } else { 0 }
+          $info     = if ($info)     { $info.number     } else { 0 }
+          $debug    = if ($debug)    { $debug.number    } else { 0 }
+          
+          if ( ($fatals -eq 0) -and ($errors -eq 0) -and ($warnings -eq 0) )
+          {
+            $msg += "No major issues found. :+1: `r`n"
+          } 
+          else
+          {
+            $msg += "The following number of issues were detected:`r`n"
+          }
+          
+          if ( ($fatals + $errors + $warnings + $info + $debug) -gt 0 )
+          {
+            $msg += "| Level  | Occurrences |`r`n`| --- | ------------- | ------------- |`r`n"
+            if ( $fatals   -ne 0 ) { $msg += "| :no_entry:           | Fatal   | $fatals   |`r`n" }
+            if ( $errors   -ne 0 ) { $msg += "| :no_entry_sign:      | Error   | $errors   |`r`n" }
+            if ( $warnings -ne 0 ) { $msg += "| :warning:            | Warning | $warnings |`r`n" }
+            if ( $info     -ne 0 ) { $msg += "| :information_source: | Info    | $info     |`r`n" }
+            if ( $debug    -ne 0 ) { $msg += "| :grey_question:      | Debug   | $debug    |`r`n" }
+          }
+          
+        }
+        else
+        {
+          $msg += "No issues found. :+1:`r`n"
+        }
+        
+        $msg += "`r`nTo download the full report click [here](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}).
+        
+        $msg | Out-File -FilePath '${{ runner.temp }}/pr_comment.txt'
+
+    - name: "Comment on PR"
+      if: ${{ inputs.comment_on_pr == 'true' }}
+      continue-on-error: true
+      uses: thollander/actions-comment-pull-request@v2
+        with:
+          filePath: '${{ runner.temp }}/pr_comment.txt'
 
 branding:
   icon: 'box'
