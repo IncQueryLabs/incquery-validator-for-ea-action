@@ -27,4 +27,4 @@ jobs:
           analysis_suite: default
           incquery_username: "${{ secrets.incquery_username }}"
           incquery_password: "${{ secrets.incquery_password }}"
-          incquery_ea_validator_license: "${{ secrets.incquery_ea_validator_license }}"
+          license: "${{ secrets.incquery_ea_validator_license }}"

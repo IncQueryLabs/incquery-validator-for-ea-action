@@ -19,7 +19,7 @@ inputs:
   incquery_password:
     description: "Password to https://artifacts.incquery.io/. Not required if the validator is already installed on the runner."
     required: false
-  incquery_ea_validator_license:
+  license:
     description: "The contents of the supplied license file."
     required: true
 
@@ -29,7 +29,7 @@ runs:
     - name: Download and install IncQuery Validator for Enterprise Architect
       shell: pwsh
       run: |
-        if (Test-Path -Path 'C:\Program Files\IncQuery Labs\IncQuery Validator for Enterprise Architect\CI\run_validation.ps1' -PathType Leaf )
+        if (Test-Path -Path 'C:/Program Files/IncQuery Labs/IncQuery Validator for Enterprise Architect/CI/run_validation.ps1' -PathType Leaf )
         {
           $setupWebUrl = "https://artifacts.incquery.io/incquery-suite/incquery-validator-for-ea/IncQuery%20Validator%20for%20Enterprise%20Architect%202023.1.2%20Setup.exe"
           $user = "${{ inputs.incquery_username }}"
@@ -48,7 +48,7 @@ runs:
     - name: Create the license file
       shell: pwsh
       run: |
-        echo '${{ inputs.incquery_ea_validator_license }}' | Out-File -FilePath '${{ runner.temp }}/IncQueryValidatorLicense.lic'
+        echo '${{ inputs.license }}' | Out-File -FilePath '${{ runner.temp }}/IncQueryValidatorLicense.lic'
 
     - name: Run validation
       shell: pwsh
