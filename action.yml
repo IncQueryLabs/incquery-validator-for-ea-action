@@ -98,7 +98,7 @@ runs:
           
           if ( ($fatals + $errors + $warnings + $info + $debug) -gt 0 )
           {
-            $msg += "|     | Level         | Occurrences   |`r`n`"
+            $msg += "|     | Level         | Occurrences   |`r`n"
             $msg += "| --- | ------------- | ------------- |`r`n"
             if ( $fatals   -ne 0 ) { $msg += "| :no_entry:           | Fatal   | $fatals   |`r`n" }
             if ( $errors   -ne 0 ) { $msg += "| :no_entry_sign:      | Error   | $errors   |`r`n" }
