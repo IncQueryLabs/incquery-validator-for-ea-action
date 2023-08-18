@@ -33,3 +33,4 @@ jobs:
           license: "${{ secrets.incquery_ea_validator_license }}"
           comment_on_pr: true
           fail_on: warning
+
