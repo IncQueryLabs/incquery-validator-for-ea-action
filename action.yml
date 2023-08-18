@@ -26,6 +26,10 @@ inputs:
     description: "Comment on the pull request with the result of the analysis."
     required: false
     default: 'false'
+  fail_on:
+    description: "Fail the workflow if there are any findings with the level equal or greater to the specified. Possible values are: 'none' (don't fail on anything), 'debug', 'info', 'warning', 'error', 'fatal'."
+    required: false
+    default: 'warning'
 
 runs:
   using: "composite"
@@ -67,26 +71,33 @@ runs:
         name: "${{ inputs.analysis_suite }} analysis result"
         path: ${{ runner.temp }}/validation_result/
 
-    - name: "Create PR comment content"
+    - name: "Process result summary, create PR comment content"
       shell: pwsh
-      if: ${{ inputs.comment_on_pr == 'true' }}
+      id: process_summary
       run: |  
         $result = Import-Csv -Path "${{ runner.temp }}/validation_result/kpi_summary.csv" -Header level,number 
         $msg = "## ![validator_icon](https://github.com/IncQueryLabs/incquery-validator-for-ea-action/assets/39518109/3fcc578a-f986-4123-8b91-d3fa9c6443a0) IncQuery Validator for Enterprise Architect `r`nAnalysis were executed on **${{ inputs.model_file_path }}** with the **${{ inputs.analysis_suite }}** ruleset.`r`n`r`n"
         
-        if (  $result.Count -gt 1 )
+        $fatals   = $result | where { $_.level.StartsWith("fatal error") }
+        $errors   = $result | where { $_.level.StartsWith("errors")      }
+        $warnings = $result | where { $_.level.StartsWith("warnings")    }
+        $infos    = $result | where { $_.level.StartsWith("info")        }
+        $debugs   = $result | where { $_.level.StartsWith("debug")       }
+        
+        $fatals   = if ($fatals)   { $fatals.number   } else { 0 }
+        $errors   = if ($errors)   { $errors.number   } else { 0 }
+        $warnings = if ($warnings) { $warnings.number } else { 0 }
+        $infos    = if ($infos)    { $infos.number    } else { 0 }
+        $debugs   = if ($debugs)   { $debugs.number   } else { 0 }
+
+        echo "fatals=$fatals"     >> $env:GITHUB_OUTPUT
+        echo "errors=$errors"     >> $env:GITHUB_OUTPUT
+        echo "warnings=$warnings" >> $env:GITHUB_OUTPUT
+        echo "infos=$infos"       >> $env:GITHUB_OUTPUT
+        echo "debugs=$debugs"     >> $env:GITHUB_OUTPUT
+
+        if ( $result.Count -gt 1 )
         {
-          $fatals   = $result | where { $_.level.StartsWith("fatal error") }
-          $errors   = $result | where { $_.level.StartsWith("errors")      }
-          $warnings = $result | where { $_.level.StartsWith("warnings")    }
-          $info     = $result | where { $_.level.StartsWith("info")        }
-          $debug    = $result | where { $_.level.StartsWith("debug")       }
-          
-          $fatals   = if ($fatals)   { $fatals.number   } else { 0 }
-          $errors   = if ($errors)   { $errors.number   } else { 0 }
-          $warnings = if ($warnings) { $warnings.number } else { 0 }
-          $info     = if ($info)     { $info.number     } else { 0 }
-          $debug    = if ($debug)    { $debug.number    } else { 0 }
           
           if ( ($fatals -eq 0) -and ($errors -eq 0) -and ($warnings -eq 0) )
           {
@@ -97,15 +108,15 @@ runs:
             $msg += "The following number of issues were detected:`r`n"
           }
           
-          if ( ($fatals + $errors + $warnings + $info + $debug) -gt 0 )
+          if ( ($fatals + $errors + $warnings + $infos + $debugs) -gt 0 )
           {
             $msg += "|     | Level         | Occurrences   |`r`n"
             $msg += "| --- | ------------- | ------------- |`r`n"
             if ( $fatals   -ne 0 ) { $msg += "| :no_entry:           | Fatal   | $fatals   |`r`n" }
             if ( $errors   -ne 0 ) { $msg += "| :no_entry_sign:      | Error   | $errors   |`r`n" }
             if ( $warnings -ne 0 ) { $msg += "| :warning:            | Warning | $warnings |`r`n" }
-            if ( $info     -ne 0 ) { $msg += "| :information_source: | Info    | $info     |`r`n" }
-            if ( $debug    -ne 0 ) { $msg += "| :grey_question:      | Debug   | $debug    |`r`n" }
+            if ( $infos    -ne 0 ) { $msg += "| :information_source: | Info    | $infos    |`r`n" }
+            if ( $debugs   -ne 0 ) { $msg += "| :grey_question:      | Debug   | $debugs   |`r`n" }
           }
         }
         else
@@ -139,6 +150,52 @@ runs:
       with:
         filePath: '${{ runner.temp }}/pr_comment.txt'
         pr_number: '${{ steps.find-pull-request.outputs.number }}'
+
+    - name: Check build result
+
+      shell: pwsh
+      run: |
+
+        $fatals   = [int]"${{ steps.process_summary.outputs.fatals   }}"
+        $errors   = [int]"${{ steps.process_summary.outputs.errors   }}"
+        $warnings = [int]"${{ steps.process_summary.outputs.warnings }}"
+        $infos    = [int]"${{ steps.process_summary.outputs.infos    }}"
+        $debugs   = [int]"${{ steps.process_summary.outputs.debugs   }}"
+
+        $errors += $fatals
+        $warnings += $errors
+        $infos += $warnings
+        $debugs += $infos
+
+        if ( ("${{ inputs.fail_on }}" -eq "fatal") -and ($fatals -gt 0) )
+        {
+          echo "Failing build, because there are fatal errors in the model."
+          exit 1
+        }
+        
+        if ( ("${{ inputs.fail_on }}" -eq "error") -and ($errors -gt 0) )
+        {
+          echo "Failing build, because there are errors or fatal errors in the model."
+          exit 1
+        }
+
+        if ( ("${{ inputs.fail_on }}" -eq "warning") -and ($warnings -gt 0) )
+        {
+          echo "Failing build, because there are warnings or above in the model."
+          exit 1
+        }
+
+        if ( ("${{ inputs.fail_on }}" -eq "info") -and ($infos -gt 0) )
+        {
+          echo "Failing build, because there are infos or above in the model."
+          exit 1
+        }
+
+        if ( ("${{ inputs.fail_on }}" -eq "debug") -and ($debugs -gt 0) )
+        {
+          echo "Failing build, because there are debug findings or above in the model."
+          exit 1
+        }
 
 branding:
   icon: 'box'
