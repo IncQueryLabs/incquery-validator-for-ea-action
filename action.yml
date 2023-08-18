@@ -163,12 +163,6 @@ runs:
         $msg | Out-File -FilePath '${{ runner.temp }}/pr_comment.txt'
         echo $msg
 
-    #- name: Extract branch name
-    #  if: ${{ inputs.comment_on_pr == 'true' }}
-    #  shell: bash
-    #  run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
-    #  id: extract_branch
-
     - name: Find Pull Request
       if: ${{ inputs.comment_on_pr == 'true' }}
       uses: juliangruber/find-pull-request-action@v1
