@@ -71,7 +71,7 @@ runs:
       if: ${{ inputs.comment_on_pr == 'true' }}
       run: |  
         $result = Import-Csv -Path "${{ runner.temp }}/validation_result/kpi_summary.csv" -Header level,number 
-        $msg = "## ![validator_icon](https://github.com/IncQueryLabs/incquery-suite-ea-connector/assets/39518109/7e00edf1-630d-47f8-b37e-cd8f5c0875f0) IncQuery Validator for Enterprise Architect `r`nAnalysis were executed on **${{ inputs.model_file_path }}** with **${{ inputs.analysis_suite }}**.`r`n`r`n"
+        $msg = "## ![validator_icon](https://github.com/IncQueryLabs/incquery-validator-for-ea-action/assets/39518109/3fcc578a-f986-4123-8b91-d3fa9c6443a0) IncQuery Validator for Enterprise Architect `r`nAnalysis were executed on **${{ inputs.model_file_path }}** with **${{ inputs.analysis_suite }}**.`r`n`r`n"
         
         if (  $result.Count -gt 1 )
         {
@@ -117,27 +117,28 @@ runs:
 
         echo $msg
 
-    - name: "Extract branch name from push"
+    - name: Extract branch name from push
       if: github.event_name != 'pull_request'
       shell: bash
-      run: echo "::set-env name=BRANCH_NAME::$(echo ${GITHUB_REF#refs/heads/})"
+      run: echo ${GITHUB_REF#refs/heads/} > ${{ runner.temp }}/branch_name.txt
 
-    - name: "Extract branch name from pull request"
+    - name: Extract branch name from pull request
       if: github.event_name == 'pull_request'
       shell: bash
-      run: echo "::set-env name=BRANCH_NAME::$(echo ${GITHUB_HEAD_REF})"
+      run: echo ${GITHUB_HEAD_REF} > ${{ runner.temp }}/branch_name.txt
 
-    - name: "Set branch name to output"
-      shell: bash
-      run: echo "##[set-output name=branch;]$BRANCH_NAME)"
+    - name: Set branch name to output
       id: extract_branch
+      uses: juliangruber/read-file-action@v1
+      with:
+        path: ${{ runner.temp }}/branch_name.txt
 
     - name: "Find Pull Request"
       uses: juliangruber/find-pull-request-action@v1
       if: ${{ inputs.comment_on_pr == 'true' }}
       id: find-pull-request
       with:
-        branch: ${{ steps.extract_branch.outputs.branch }}
+        branch: ${{ steps.extract_branch.outputs.content }}
 
     - name: Comment on PR
       if: ${{ (inputs.comment_on_pr == 'true') && (steps.find-pull-request.outputs.number > 0) }}
