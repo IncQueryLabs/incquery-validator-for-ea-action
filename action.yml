@@ -117,28 +117,18 @@ runs:
 
         echo $msg
 
-    - name: Extract branch name from push
-      if: github.event_name != 'pull_request'
-      shell: bash
-      run: echo ${GITHUB_REF#refs/heads/} > ${{ runner.temp }}/branch_name.txt
-
-    - name: Extract branch name from pull request
-      if: github.event_name == 'pull_request'
-      shell: bash
-      run: echo ${GITHUB_HEAD_REF} > ${{ runner.temp }}/branch_name.txt
-
-    - name: Set branch name to output
-      id: extract_branch
-      uses: juliangruber/read-file-action@v1
-      with:
-        path: ${{ runner.temp }}/branch_name.txt
-
-    - name: "Find Pull Request"
-      uses: juliangruber/find-pull-request-action@v1
+    - name: Extract branch name
       if: ${{ inputs.comment_on_pr == 'true' }}
+      shell: bash
+      run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
+      id: extract_branch
+
+    - name: Find Pull Request
+      if: ${{ inputs.comment_on_pr == 'true' }}
+      uses: juliangruber/find-pull-request-action@v1
       id: find-pull-request
       with:
-        branch: ${{ steps.extract_branch.outputs.content }}
+        branch: ${{ steps.extract_branch.outputs.branch }}
 
     - name: Comment on PR
       if: ${{ (inputs.comment_on_pr == 'true') && (steps.find-pull-request.outputs.number > 0) }}
