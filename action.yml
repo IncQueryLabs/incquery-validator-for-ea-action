@@ -163,18 +163,18 @@ runs:
         $msg | Out-File -FilePath '${{ runner.temp }}/pr_comment.txt'
         echo $msg
 
-    - name: Extract branch name
-      if: ${{ inputs.comment_on_pr == 'true' }}
-      shell: bash
-      run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
-      id: extract_branch
+    #- name: Extract branch name
+    #  if: ${{ inputs.comment_on_pr == 'true' }}
+    #  shell: bash
+    #  run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
+    #  id: extract_branch
 
     - name: Find Pull Request
       if: ${{ inputs.comment_on_pr == 'true' }}
       uses: juliangruber/find-pull-request-action@v1
       id: find-pull-request
       with:
-        branch: ${{ steps.extract_branch.outputs.branch }}
+        branch: ${{ github.head_ref || github.ref_name }}
 
     - name: Comment on PR
       if: ${{ (inputs.comment_on_pr == 'true') && (steps.find-pull-request.outputs.number > 0) }}
@@ -185,15 +185,11 @@ runs:
         pr_number: '${{ steps.find-pull-request.outputs.number }}'
 
     - name: Check build result
+      if: ${{ steps.process_summary.outputs.need_to_fail == 'true' }}
       shell: pwsh
       run: |
-        $needToFail   = "${{ steps.process_summary.outputs.need_to_fail }}"
-
-        if ( $needToFail -eq "true" )
-        {
-          echo "Failing build, because there are issues detected above the set threshold."
-          exit 1
-        }
+        echo "Failing build, because there are issues detected above the set threshold."
+        exit 1
 
 branding:
   icon: 'box'
