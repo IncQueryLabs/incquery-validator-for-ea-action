@@ -71,7 +71,7 @@ runs:
       if: ${{ inputs.comment_on_pr == 'true' }}
       run: |  
         $result = Import-Csv -Path "${{ runner.temp }}/validation_result/kpi_summary.csv" -Header level,number 
-        $msg = "## ![validator_icon](https://github.com/IncQueryLabs/incquery-validator-for-ea-action/assets/39518109/3fcc578a-f986-4123-8b91-d3fa9c6443a0) IncQuery Validator for Enterprise Architect `r`nAnalysis were executed on **${{ inputs.model_file_path }}** with **${{ inputs.analysis_suite }}**.`r`n`r`n"
+        $msg = "## ![validator_icon](https://github.com/IncQueryLabs/incquery-validator-for-ea-action/assets/39518109/3fcc578a-f986-4123-8b91-d3fa9c6443a0) IncQuery Validator for Enterprise Architect `r`nAnalysis were executed on **${{ inputs.model_file_path }}** with the **${{ inputs.analysis_suite }}** ruleset.`r`n`r`n"
         
         if (  $result.Count -gt 1 )
         {
@@ -98,7 +98,8 @@ runs:
           
           if ( ($fatals + $errors + $warnings + $info + $debug) -gt 0 )
           {
-            $msg += "| Level  | Occurrences |`r`n`| --- | ------------- | ------------- |`r`n"
+            $msg += "|     | Level         | Occurrences   |`r`n`"
+            $msg += "| --- | ------------- | ------------- |`r`n"
             if ( $fatals   -ne 0 ) { $msg += "| :no_entry:           | Fatal   | $fatals   |`r`n" }
             if ( $errors   -ne 0 ) { $msg += "| :no_entry_sign:      | Error   | $errors   |`r`n" }
             if ( $warnings -ne 0 ) { $msg += "| :warning:            | Warning | $warnings |`r`n" }
