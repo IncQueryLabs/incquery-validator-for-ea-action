@@ -117,27 +117,27 @@ runs:
 
         echo $msg
 
-      - name: Extract branch name from push
-        if: github.event_name != 'pull_request'
-        shell: bash
-        run: echo "::set-env name=BRANCH_NAME::$(echo ${GITHUB_REF#refs/heads/})"
+    - name: "Extract branch name from push"
+      if: github.event_name != 'pull_request'
+      shell: bash
+      run: echo "::set-env name=BRANCH_NAME::$(echo ${GITHUB_REF#refs/heads/})"
 
-      - name: Extract branch name from pull request
-        if: github.event_name == 'pull_request'
-        shell: bash
-        run: echo "::set-env name=BRANCH_NAME::$(echo ${GITHUB_HEAD_REF})"
+    - name: "Extract branch name from pull request"
+      if: github.event_name == 'pull_request'
+      shell: bash
+      run: echo "::set-env name=BRANCH_NAME::$(echo ${GITHUB_HEAD_REF})"
 
-      - name: Set branch name to output
-        shell: bash
-        run: echo "##[set-output name=branch;]$BRANCH_NAME)"
-        id: extract_branch
+    - name: "Set branch name to output"
+      shell: bash
+      run: echo "##[set-output name=branch;]$BRANCH_NAME)"
+      id: extract_branch
 
-    - name: Find Pull Request
-        uses: juliangruber/find-pull-request-action@v1
-        if: ${{ inputs.comment_on_pr == 'true' }}
-        id: find-pull-request
-        with:
-          branch: ${{ steps.extract_branch.outputs.branch }}
+    - name: "Find Pull Request"
+      uses: juliangruber/find-pull-request-action@v1
+      if: ${{ inputs.comment_on_pr == 'true' }}
+      id: find-pull-request
+      with:
+        branch: ${{ steps.extract_branch.outputs.branch }}
 
     - name: Comment on PR
       if: ${{ (inputs.comment_on_pr == 'true') && (steps.find-pull-request.outputs.number > 0) }}
