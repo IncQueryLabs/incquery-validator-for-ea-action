@@ -84,31 +84,23 @@ runs:
         $infos    = $result | where { $_.level.StartsWith("info")        }
         $debugs   = $result | where { $_.level.StartsWith("debug")       }
         
-        $fatals   = if ($fatals)   { $fatals.number   } else { 0 }
-        $errors   = if ($errors)   { $errors.number   } else { 0 }
-        $warnings = if ($warnings) { $warnings.number } else { 0 }
-        $infos    = if ($infos)    { $infos.number    } else { 0 }
-        $debugs   = if ($debugs)   { $debugs.number   } else { 0 }
+        $fatals   = if ($fatals)   { [int]$fatals.number   } else { [int]0 }
+        $errors   = if ($errors)   { [int]$errors.number   } else { [int]0 }
+        $warnings = if ($warnings) { [int]$warnings.number } else { [int]0 }
+        $infos    = if ($infos)    { [int]$infos.number    } else { [int]0 }
+        $debugs   = if ($debugs)   { [int]$debugs.number   } else { [int]0 }
 
-        echo "fatals=$fatals"     >> $env:GITHUB_OUTPUT
-        echo "errors=$errors"     >> $env:GITHUB_OUTPUT
-        echo "warnings=$warnings" >> $env:GITHUB_OUTPUT
-        echo "infos=$infos"       >> $env:GITHUB_OUTPUT
-        echo "debugs=$debugs"     >> $env:GITHUB_OUTPUT
+        $sumMinFatals    = $fatals
+        $sumMinErrors    = $sumMinFatals   + $errors
+        $sumMinWarnings  = $sumMinErrors   + $warnings
+        $sumMinInfos     = $sumMinWarnings + $infos
+        $sumMinDebugs    = $sumMinInfos    + $debugs
 
-        if ( $result.Count -gt 1 )
+        if ( $sumMinDebugs -gt 0 )
         {
+          $msg += "The following type of issues were detected:`r`n"
           
-          if ( ($fatals -eq 0) -and ($errors -eq 0) -and ($warnings -eq 0) )
-          {
-            $msg += "No major issues found. :+1: `r`n"
-          } 
-          else
-          {
-            $msg += "The following number of issues were detected:`r`n"
-          }
-          
-          if ( ($fatals + $errors + $warnings + $infos + $debugs) -gt 0 )
+          if ( $sumMinDebugs -gt 0 )
           {
             $msg += "|     | Level         | Occurrences   |`r`n"
             $msg += "| --- | ------------- | ------------- |`r`n"
@@ -123,11 +115,52 @@ runs:
         {
           $msg += "No issues found. :+1:`r`n"
         }
+
+        $needToFail = "false"
+
+        $checkMsg = ":heavy_check_mark: The model passed the validation criteria."
+
+        if ( ("${{ inputs.fail_on }}" -eq "fatal") -and ($sumMinFatals -gt 0) )
+        {
+          echo "Failing build, because there are fatal errors in the model."
+          $needToFail = "true"
+          $checkMsg = ":x: The model failed the validation criteria, there should be no fatal errors."
+        }
         
+        if ( ("${{ inputs.fail_on }}" -eq "error") -and ($sumMinErrors -gt 0) )
+        {
+          echo "Failing build, because there are errors or fatal errors in the model."
+          $needToFail = "true"
+          $checkMsg = ":x: The model failed the validation criteria, there should be no errors or fatal errors."
+        }
+
+        if ( ("${{ inputs.fail_on }}" -eq "warning") -and ($sumMinWarnings -gt 0) )
+        {
+          echo "Failing build, because there are warnings or above in the model."
+          $needToFail = "true"
+          $checkMsg = ":x: The model failed the validation criteria, there should be no warnings, errors or fatal errors."
+        }
+
+        if ( ("${{ inputs.fail_on }}" -eq "info") -and ($sumMinInfos -gt 0) )
+        {
+          echo "Failing build, because there are infos or above in the model."
+          $needToFail = "true"
+          $checkMsg = ":x: The model failed the validation criteria, there should be no infos, warnings, errors or fatal errors."
+        }
+
+        if ( ("${{ inputs.fail_on }}" -eq "debug") -and ($sumMinDebugs -gt 0) )
+        {
+          echo "Failing build, because there are debug findings or above in the model."
+          $needToFail = "true"
+          $checkMsg = ":x: The model failed the validation criteria, there should be no issues detected."
+        }
+        
+        echo "need_to_fail=$needToFail" >> $env:GITHUB_OUTPUT
+
+        $msg += "`r`n" + $checkMsg + "`r`n"
         $msg += "`r`nTo view the full report download the *${{ inputs.analysis_suite }} analysis result* artifacts from [here](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}#artifacts)."
         
         $msg | Out-File -FilePath '${{ runner.temp }}/pr_comment.txt'
-
         echo $msg
 
     - name: Extract branch name
@@ -152,48 +185,13 @@ runs:
         pr_number: '${{ steps.find-pull-request.outputs.number }}'
 
     - name: Check build result
-
       shell: pwsh
       run: |
+        $needToFail   = "${{ steps.process_summary.outputs.need_to_fail }}"
 
-        $fatals   = [int]"${{ steps.process_summary.outputs.fatals   }}"
-        $errors   = [int]"${{ steps.process_summary.outputs.errors   }}"
-        $warnings = [int]"${{ steps.process_summary.outputs.warnings }}"
-        $infos    = [int]"${{ steps.process_summary.outputs.infos    }}"
-        $debugs   = [int]"${{ steps.process_summary.outputs.debugs   }}"
-
-        $errors += $fatals
-        $warnings += $errors
-        $infos += $warnings
-        $debugs += $infos
-
-        if ( ("${{ inputs.fail_on }}" -eq "fatal") -and ($fatals -gt 0) )
+        if ( $needToFail -eq "true" )
         {
-          echo "Failing build, because there are fatal errors in the model."
-          exit 1
-        }
-        
-        if ( ("${{ inputs.fail_on }}" -eq "error") -and ($errors -gt 0) )
-        {
-          echo "Failing build, because there are errors or fatal errors in the model."
-          exit 1
-        }
-
-        if ( ("${{ inputs.fail_on }}" -eq "warning") -and ($warnings -gt 0) )
-        {
-          echo "Failing build, because there are warnings or above in the model."
-          exit 1
-        }
-
-        if ( ("${{ inputs.fail_on }}" -eq "info") -and ($infos -gt 0) )
-        {
-          echo "Failing build, because there are infos or above in the model."
-          exit 1
-        }
-
-        if ( ("${{ inputs.fail_on }}" -eq "debug") -and ($debugs -gt 0) )
-        {
-          echo "Failing build, because there are debug findings or above in the model."
+          echo "Failing build, because there are issues detected above the set threshold."
           exit 1
         }
 
