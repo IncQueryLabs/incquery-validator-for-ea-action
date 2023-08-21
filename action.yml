@@ -34,26 +34,48 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Download and install IncQuery Validator for Enterprise Architect
+    - name: Determining if IncQuery Validator for Enterprise Architect needs to be installed or not
+      id: validator-state
       shell: pwsh
       run: |
         if (Test-Path -Path 'C:/Program Files/IncQuery Labs/IncQuery Validator for Enterprise Architect/CI/run_validation.ps1' -PathType Leaf )
         {
           echo "IncQuery Validator for Enterprise Architect is already installed."
+          echo "need_to_install=false" >> $env:GITHUB_OUTPUT
         }
         else
         {
-          $setupWebUrl = "https://artifacts.incquery.io/incquery-suite/incquery-validator-for-ea/IncQuery%20Validator%20for%20Enterprise%20Architect%202023.1.2%20Setup.exe"
-          $setupWebUrl = "https://build.incquerylabs.com/nexus/repository/lieberlieber-collaboration-raw/validator-for-ea/release-2023.2.0-alpha/IncQuery%20Validator%20for%20Enterprise%20Architect%202023.2.0-alpha%20Setup.exe"
-          $user = "${{ inputs.incquery_username }}"
-          $pass= "${{ inputs.incquery_password }}"
-          if ( $user.Length -eq 0 ) { exit 1 }
-          if ( $pass.Length -eq 0 ) { exit 1 }
-          $secpasswd = ConvertTo-SecureString $pass -AsPlainText -Force
-          $credential = New-Object System.Management.Automation.PSCredential($user, $secpasswd)
-          Invoke-WebRequest $setupWebUrl -Credential $credential -OutFile "${{ runner.temp }}/IncQuery Validator for Enterprise Architect Setup.exe"
-          Start-Process -FilePath '${{ runner.temp }}/IncQuery Validator for Enterprise Architect Setup.exe' -ArgumentList @("/install", "/quiet") -Wait
+          echo "IncQuery Validator for Enterprise Architect will be installed."
+          echo "need_to_install=true" >> $env:GITHUB_OUTPUT
+          echo "download_url=https://build.incquerylabs.com/nexus/repository/lieberlieber-collaboration-raw/validator-for-ea/release-2023.2.0-alpha/IncQuery%20Validator%20for%20Enterprise%20Architect%202023.2.0-alpha%20Setup.exe" >> $env:GITHUB_OUTPUT
+          echo "installer_path=${{ runner.temp }}/IncQuery Validator for Enterprise Architect Setup.exe" >> $env:GITHUB_OUTPUT
         }
+
+    - name: Cache the IncQuery Validator for Enterprise Architect installer
+      id: cache-installer
+      uses: actions/cache@v3
+      if: ${{ steps.validator-state.outputs.needToInstall == 'true' }}
+      with:
+        path: ${{ steps.validator-state.outputs.installer_path }}
+        key:  ${{ steps.validator-state.outputs.download_url }}
+
+    - name: Download the IncQuery Validator for Enterprise Architect installer
+      shell: pwsh
+      if: ${{ ( steps.cache-installer.outputs.cache-hit != 'true' ) && ( steps.validator-state.outputs.need_to_install == 'true' ) }}
+      run: |
+        $user = "${{ inputs.incquery_username }}"
+        $pass= "${{ inputs.incquery_password }}"
+        if ( $user.Length -eq 0 ) { exit 1 }
+        if ( $pass.Length -eq 0 ) { exit 1 }
+        $secpasswd = ConvertTo-SecureString $pass -AsPlainText -Force
+        $credential = New-Object System.Management.Automation.PSCredential($user, $secpasswd)
+        Invoke-WebRequest ${{ steps.validator-state.outputs.download_url }} -Credential $credential -OutFile '${{ steps.validator-state.outputs.installer_path }}'
+    
+    - name: Install IncQuery Validator for Enterprise Architect
+      shell: pwsh
+      if: ${{ steps.validator-state.outputs.need_to_install == 'true' }}
+      run: |
+        Start-Process -FilePath '${{ steps.validator-state.outputs.installer_path }}' -ArgumentList @("/install", "/quiet") -Wait
 
     - name: Create the license file
       shell: pwsh
