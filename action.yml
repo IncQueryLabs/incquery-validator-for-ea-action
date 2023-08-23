@@ -98,7 +98,7 @@ runs:
       id: process_summary
       run: |  
         $result = Import-Csv -Path "${{ runner.temp }}/validation_result/kpi_summary.csv" -Header level,number 
-        $msg = "## ![validator_icon](https://github.com/IncQueryLabs/incquery-validator-for-ea-action/assets/39518109/3fcc578a-f986-4123-8b91-d3fa9c6443a0) IncQuery Validator for Enterprise Architect `r`nAnalysis were executed on **${{ inputs.model_file_path }}** with the **${{ inputs.analysis_suite }}** ruleset.`r`n`r`n"
+        $msg = "## ![validator_icon](https://github.com/IncQueryLabs/incquery-validator-for-ea-action/assets/39518109/7db6c023-9bae-4e68-ad43-ca92ba84d0e6) IncQuery Validator for Enterprise Architect `r`nAnalysis were executed on **${{ inputs.model_file_path }}** with the **${{ inputs.analysis_suite }}** ruleset.`r`n`r`n"
         
         $fatals   = $result | where { $_.level.StartsWith("fatal error") }
         $errors   = $result | where { $_.level.StartsWith("errors")      }
