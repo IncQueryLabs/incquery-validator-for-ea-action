@@ -42,7 +42,7 @@ The following secrets need to be configured in the repository:
 
 ```yaml
 - name: Run validation
-  uses: IncQueryLabs/incquery-validator-for-ea-action@master
+  uses: IncQueryLabs/incquery-validator-for-ea-action@v1
   with:
     model_file_path:   example.qeax
     analysis_suite:    "SAIC Digital Engineering Validation"
