@@ -51,9 +51,9 @@ runs:
           echo "installer_path=${{ runner.temp }}/IncQuery Validator for Enterprise Architect Setup.exe" >> $env:GITHUB_OUTPUT
         }
 
-    - name: Cache the IncQuery Validator for Enterprise Architect installer
-      id: cache-installer
-      uses: actions/cache@v3
+    - name: Restore the IncQuery Validator for Enterprise Architect installer from cache
+      id: cache-installer-restore
+      uses: actions/cache/restore@v3
       if: ${{ steps.validator-state.outputs.need_to_install == 'true' }}
       with:
         path: ${{ steps.validator-state.outputs.installer_path }}
@@ -61,7 +61,7 @@ runs:
 
     - name: Download the IncQuery Validator for Enterprise Architect installer
       shell: pwsh
-      if: ${{ ( steps.cache-installer.outputs.cache-hit != 'true' ) && ( steps.validator-state.outputs.need_to_install == 'true' ) }}
+      if: ${{ ( steps.cache-installer-restore.outputs.cache-hit != 'true' ) && ( steps.validator-state.outputs.need_to_install == 'true' ) }}
       run: |
         $user = "${{ inputs.incquery_username }}"
         $pass= "${{ inputs.incquery_password }}"
@@ -71,6 +71,13 @@ runs:
         $credential = New-Object System.Management.Automation.PSCredential($user, $secpasswd)
         Invoke-WebRequest ${{ steps.validator-state.outputs.download_url }} -Credential $credential -OutFile '${{ steps.validator-state.outputs.installer_path }}'
     
+    - name: Cache the IncQuery Validator for Enterprise Architect installer
+      id: cache-installer-save
+      uses: actions/cache/save@v3
+      with:
+        path: ${{ steps.validator-state.outputs.installer_path }}
+        key:  ${{ steps.validator-state.outputs.download_url }}
+
     - name: Install IncQuery Validator for Enterprise Architect
       shell: pwsh
       if: ${{ steps.validator-state.outputs.need_to_install == 'true' }}
