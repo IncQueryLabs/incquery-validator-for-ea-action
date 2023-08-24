@@ -204,8 +204,12 @@ runs:
 
         foreach ($rule in $summary_csv)
         {
+            $severity = $rule.Severity
+            $occurrences = $rule.Occurrences
+            $description = $rule.Description
+            $ruleName = $rule.'Symbolic name'
             
-            switch ($rule.Severity) {
+            switch ($severity) {
                 "FATAL"   { $severityNumeric = 5 }
                 "ERROR"   { $severityNumeric = 4 }
                 "WARNING" { $severityNumeric = 3 }
@@ -216,11 +220,12 @@ runs:
 
             $marker = ":green_circle:"
 
-            if ( ( ("${{ inputs.fail_on }}" -eq "fatal"  ) -and ($severityNumeric -ge 5 ) ) -or
-                ( ("${{ inputs.fail_on }}" -eq "error"  ) -and ($severityNumeric -ge 4 ) ) -or
-                ( ("${{ inputs.fail_on }}" -eq "warning") -and ($severityNumeric -ge 3 ) ) -or
-                ( ("${{ inputs.fail_on }}" -eq "info"   ) -and ($severityNumeric -ge 2 ) ) -or
-                ( ("${{ inputs.fail_on }}" -eq "debug"  ) -and ($severityNumeric -ge 1 ) ) )
+            if ( ( $occurrences -gt 0 ) -and
+                ( ( ("${{ inputs.fail_on }}" -eq "fatal"  ) -and ($severityNumeric -ge 5 ) ) -or
+                  ( ("${{ inputs.fail_on }}" -eq "error"  ) -and ($severityNumeric -ge 4 ) ) -or
+                  ( ("${{ inputs.fail_on }}" -eq "warning") -and ($severityNumeric -ge 3 ) ) -or
+                  ( ("${{ inputs.fail_on }}" -eq "info"   ) -and ($severityNumeric -ge 2 ) ) -or
+                  ( ("${{ inputs.fail_on }}" -eq "debug"  ) -and ($severityNumeric -ge 1 ) ) ) )
             {
               $marker = ":red_circle:"
             }
@@ -232,11 +237,6 @@ runs:
                 $summary_message += " $marker |"
             }
 
-            $severity = $rule.Severity
-            $occurrences = $rule.Occurrences
-            $description = $rule.Description
-            $ruleName = $rule.'Symbolic name'
-
             $summary_message += " $severity | $ruleName | $occurrences | $description |`r`n"
         }
 
@@ -244,7 +244,7 @@ runs:
 
         if ( "${{ inputs.fail_on }}" -ne "none" )
         {
-            $summary_message += ">The pass/fail display (:green_circle:/:red_circle:) depends on the configured quality gate (currently its set to ${{ inputs.fail_on }}).`r`n"
+            $summary_message += ">The pass/fail display (:green_circle:/:red_circle:) depends on the configured quality gate (currently its set to fail on ${{ inputs.fail_on }} or more severe).`r`n"
         }
 
         # write out the summary message
