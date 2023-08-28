@@ -82,7 +82,17 @@ runs:
       shell: pwsh
       if: ${{ steps.validator-state.outputs.need_to_install == 'true' }}
       run: |
-        Start-Process -FilePath '${{ steps.validator-state.outputs.installer_path }}' -ArgumentList @("/install", "/quiet") -Wait
+        $currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+        $isAdmin = $currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+        if($isAdmin -ne $true)
+        {
+            $msg = "IncQuery Validator for Enterprise Architect is not installed on the runner, and since the current user is not an administrator the action can't install it."  
+            echo $msg
+            echo $msg | Out-File -FilePath $env:GITHUB_STEP_SUMMARY
+            exit 1
+        }        
+        $installResult = Start-Process -FilePath '${{ steps.validator-state.outputs.installer_path }}' -ArgumentList @("/install", "/quiet") -Wait -PassThru
+        exit $installResult.ExitCode
 
     - name: Create the license file
       shell: pwsh
