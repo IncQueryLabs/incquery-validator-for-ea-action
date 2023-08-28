@@ -91,7 +91,8 @@ runs:
             echo $msg | Out-File -FilePath $env:GITHUB_STEP_SUMMARY
             exit 1
         }        
-        Start-Process -FilePath '${{ steps.validator-state.outputs.installer_path }}' -ArgumentList @("/install", "/quiet") -Wait
+        $installResult = Start-Process -FilePath '${{ steps.validator-state.outputs.installer_path }}' -ArgumentList @("/install", "/quiet") -Wait -PassThru
+        exit $installResult.ExitCode
 
     - name: Create the license file
       shell: pwsh
