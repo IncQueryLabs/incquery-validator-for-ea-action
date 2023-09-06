@@ -115,8 +115,13 @@ runs:
       shell: pwsh
       id: process_summary
       run: |  
+        # import results
         $result = Import-Csv -Path "${{ runner.temp }}/validation_result/kpi_summary.csv" -Header level,number 
-        $msg = "# ![validator_icon](https://github.com/IncQueryLabs/incquery-validator-for-ea-action/assets/39518109/7db6c023-9bae-4e68-ad43-ca92ba84d0e6) IncQuery Validator for Enterprise Architect `r`nAnalysis were executed on **${{ inputs.model_file_path }}** with the **${{ inputs.analysis_suite }}** ruleset.`r`n`r`n"
+        $summary_csv = Import-Csv -Path "${{ runner.temp }}/validation_result/summary.csv"
+        $numRules = $summary_csv.Count
+        
+        $msg = "# ![validator_icon](https://github.com/IncQueryLabs/incquery-validator-for-ea-action/assets/39518109/7db6c023-9bae-4e68-ad43-ca92ba84d0e6) IncQuery Validator for Enterprise Architect `r`n"
+        $msg += "Analysis were executed on **${{ inputs.model_file_path }}** with the **${{ inputs.analysis_suite }}** ruleset containing $numRules rules.`r`n`r`n"
         
         $fatals   = $result | where { $_.level.StartsWith("fatal error") }
         $errors   = $result | where { $_.level.StartsWith("errors")      }
@@ -204,20 +209,26 @@ runs:
         echo $msg
 
         # create the run summary message
-
-        $summary_csv = Import-Csv -Path "${{ runner.temp }}/validation_result/summary.csv"
-
-        $summary_message = "`r`n`r`n## Per rule breakdown`r`n"
+        
+        $summary_message = "`r`n`r`n## Per rule breakdown`r`n`r`n"
+        
+        if ( "${{ inputs.fail_on }}" -ne "none" )
+        {
+            $summary_message += ">The pass/fail display (:green_circle:/:red_circle:) depends on the configured quality gate (currently its set to fail on ${{ inputs.fail_on }} or more severe).`r`n"
+            $summary_message += ">`r`n"
+        }
+        
+        $summary_message += ">Only the rules with occurrences are shown.`r`n`r`n"
 
         if ( "${{ inputs.fail_on }}" -eq "none" )
         {
-            $summary_message += "| Severity | Rule name | Occurrences | Description |`r`n"
-            $summary_message += "| -------- | --------- | ----------- | ----------- |`r`n"
+            $summary_message += "| Severity | Occurrences | Rule name | Description |`r`n"
+            $summary_message += "| -------- | ----------- | --------- | ----------- |`r`n"
         }
         else 
         {
-            $summary_message += "|     | Severity | Rule name | Occurrences | Description |`r`n"
-            $summary_message += "| --- | -------- | --------- | ----------- | ----------- |`r`n"
+            $summary_message += "|     | Severity | Occurrences | Rule name | Description |`r`n"
+            $summary_message += "| --- | -------- | ----------- | --------- | ----------- |`r`n"
         }
 
         foreach ($rule in $summary_csv)
@@ -227,47 +238,48 @@ runs:
             $description = $rule.Description
             $ruleName = $rule.'Symbolic name'
             
-            switch ($severity) {
-                "FATAL"   { $severityNumeric = 5 }
-                "ERROR"   { $severityNumeric = 4 }
-                "WARNING" { $severityNumeric = 3 }
-                "INFO"    { $severityNumeric = 2 }
-                "DEBUG"   { $severityNumeric = 1 }
-                Default   { $severityNumeric = 0 }
-            }
-
-            $marker = ":green_circle:"
-
-            if ( ( $occurrences -gt 0 ) -and
-                ( ( ("${{ inputs.fail_on }}" -eq "fatal"  ) -and ($severityNumeric -ge 5 ) ) -or
-                  ( ("${{ inputs.fail_on }}" -eq "error"  ) -and ($severityNumeric -ge 4 ) ) -or
-                  ( ("${{ inputs.fail_on }}" -eq "warning") -and ($severityNumeric -ge 3 ) ) -or
-                  ( ("${{ inputs.fail_on }}" -eq "info"   ) -and ($severityNumeric -ge 2 ) ) -or
-                  ( ("${{ inputs.fail_on }}" -eq "debug"  ) -and ($severityNumeric -ge 1 ) ) ) )
+            if ( $occurrences -gt 0 )
             {
-              $marker = ":red_circle:"
-            }
+                switch ($severity) {
+                    "FATAL"   { $severityNumeric = 5 }
+                    "ERROR"   { $severityNumeric = 4 }
+                    "WARNING" { $severityNumeric = 3 }
+                    "INFO"    { $severityNumeric = 2 }
+                    "DEBUG"   { $severityNumeric = 1 }
+                    Default   { $severityNumeric = 0 }
+                }
 
-            $summary_message += "| "
-            
-            if ( "${{ inputs.fail_on }}" -ne "none" )
-            {
-                $summary_message += " $marker |"
-            }
+                $marker = ":green_circle:"
 
-            $summary_message += " $severity | $ruleName | $occurrences | $description |`r`n"
+                if ( ( ("${{ inputs.fail_on }}" -eq "fatal"  ) -and ($severityNumeric -ge 5 ) ) -or
+                     ( ("${{ inputs.fail_on }}" -eq "error"  ) -and ($severityNumeric -ge 4 ) ) -or
+                     ( ("${{ inputs.fail_on }}" -eq "warning") -and ($severityNumeric -ge 3 ) ) -or
+                     ( ("${{ inputs.fail_on }}" -eq "info"   ) -and ($severityNumeric -ge 2 ) ) -or
+                     ( ("${{ inputs.fail_on }}" -eq "debug"  ) -and ($severityNumeric -ge 1 ) ) )
+                {
+                  $marker = ":red_circle:"
+                }
+
+                $summary_message += "| "
+                
+                if ( "${{ inputs.fail_on }}" -ne "none" )
+                {
+                    $summary_message += " $marker |"
+                }
+
+                $summary_message += " $severity | $occurrences | $ruleName | $description |`r`n"
+            }
         }
 
         $summary_message += "`r`n"
 
-        if ( "${{ inputs.fail_on }}" -ne "none" )
-        {
-            $summary_message += ">The pass/fail display (:green_circle:/:red_circle:) depends on the configured quality gate (currently its set to fail on ${{ inputs.fail_on }} or more severe).`r`n"
-        }
-
         # write out the summary message
         echo $msg             | Out-File -FilePath $env:GITHUB_STEP_SUMMARY
-        echo $summary_message | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
+        # only write per rule breakdown if there is any occurrences
+        if ( $sumMinDebugs -gt 0 )
+        {
+            echo $summary_message | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append
+        }
 
     - name: Find Pull Request
       if: ${{ inputs.comment_on_pr == 'true' }}
