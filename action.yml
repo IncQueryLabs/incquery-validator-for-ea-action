@@ -218,7 +218,7 @@ runs:
             $summary_message += ">`r`n"
         }
         
-        $summary_message += ">Only the rules with occurrences are shown.`r`n`r`n">
+        $summary_message += ">Only the rules with occurrences are shown.`r`n`r`n"
 
         if ( "${{ inputs.fail_on }}" -eq "none" )
         {
