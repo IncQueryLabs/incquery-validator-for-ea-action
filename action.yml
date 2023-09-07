@@ -160,11 +160,11 @@ runs:
           
           if ( $numRules -eq $numRulesWithOccurrences )
           {
-              $msg += "All ($numRules) rules has occurrences in the model.`r`n"
+              $msg += "All ($numRules) rules have occurrences in the model.`r`n"
           }
           else
           {
-              $msg += "Out of the $numRules rules, $numRulesWithOccurrences has occurrences.`r`n"
+              $msg += "Out of the $numRules rules, $numRulesWithOccurrences have occurrences.`r`n"
           }
         }
         else
