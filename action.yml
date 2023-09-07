@@ -153,16 +153,18 @@ runs:
           if ( $infos    -ne 0 ) { $msg += "| :information_source: | Info    | $infos    |`r`n" }
           if ( $debugs   -ne 0 ) { $msg += "| :grey_question:      | Debug   | $debugs   |`r`n" }
           
+          $msg += "`r`n"
+          
           $numRulesWithOccurrences = ($summary_csv.Where{$_.occurrences -gt 0}).Count
           $numRulesWithoutOccurrences = $numRules - $numRulesWithOccurrences
           
           if ( $numRules -eq $numRulesWithOccurrences )
           {
-              $msg += "All ($numRules) rules has occurrences in the model.`r`n`r`n"
+              $msg += "All ($numRules) rules has occurrences in the model.`r`n"
           }
           else
           {
-              $msg += "Out of the $numRules rules, $numRulesWithOccurrences has occurrences.`r`n`r`n"
+              $msg += "Out of the $numRules rules, $numRulesWithOccurrences has occurrences.`r`n"
           }
         }
         else
