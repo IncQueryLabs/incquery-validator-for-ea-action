@@ -145,15 +145,24 @@ runs:
         {
           $msg += "The following type of issues were detected:`r`n"
           
-          if ( $sumMinDebugs -gt 0 )
+          $msg += "|     | Level         | Occurrences   |`r`n"
+          $msg += "| --- | ------------- | ------------- |`r`n"
+          if ( $fatals   -ne 0 ) { $msg += "| :no_entry:           | Fatal   | $fatals   |`r`n" }
+          if ( $errors   -ne 0 ) { $msg += "| :no_entry_sign:      | Error   | $errors   |`r`n" }
+          if ( $warnings -ne 0 ) { $msg += "| :warning:            | Warning | $warnings |`r`n" }
+          if ( $infos    -ne 0 ) { $msg += "| :information_source: | Info    | $infos    |`r`n" }
+          if ( $debugs   -ne 0 ) { $msg += "| :grey_question:      | Debug   | $debugs   |`r`n" }
+          
+          $numRulesWithOccurrences = ($summary_csv.Where{$_.occurrences -gt 0}).Count
+          $numRulesWithoutOccurrences = $numRules - $numRulesWithOccurrences
+          
+          if ( $numRules -eq $numRulesWithOccurrences )
           {
-            $msg += "|     | Level         | Occurrences   |`r`n"
-            $msg += "| --- | ------------- | ------------- |`r`n"
-            if ( $fatals   -ne 0 ) { $msg += "| :no_entry:           | Fatal   | $fatals   |`r`n" }
-            if ( $errors   -ne 0 ) { $msg += "| :no_entry_sign:      | Error   | $errors   |`r`n" }
-            if ( $warnings -ne 0 ) { $msg += "| :warning:            | Warning | $warnings |`r`n" }
-            if ( $infos    -ne 0 ) { $msg += "| :information_source: | Info    | $infos    |`r`n" }
-            if ( $debugs   -ne 0 ) { $msg += "| :grey_question:      | Debug   | $debugs   |`r`n" }
+              $msg += "All ($numRules) rules has occurrences in the model.`r`n`r`n"
+          }
+          else
+          {
+              $msg += "Out of the $numRules rules, $numRulesWithOccurrences has occurrences.`r`n`r`n"
           }
         }
         else
@@ -219,7 +228,7 @@ runs:
         }
         
         $summary_message += ">Only the rules with occurrences are shown.`r`n`r`n"
-
+                
         if ( "${{ inputs.fail_on }}" -eq "none" )
         {
             $summary_message += "| Severity | Occurrences | Rule name | Description |`r`n"
