@@ -247,7 +247,7 @@ runs:
             $severity = $rule.Severity
             $occurrences = $rule.Occurrences
             $description = $rule.Description
-            $ruleName = $rule.'Symbolic name'
+            $ruleName = $rule.'Rule name'
             
             if ( $occurrences -gt 0 )
             {
