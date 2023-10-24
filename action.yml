@@ -47,7 +47,7 @@ runs:
         {
           echo "IncQuery Validator for Enterprise Architect will be installed."
           echo "need_to_install=true" >> $env:GITHUB_OUTPUT
-          echo "download_url=https://build.incquerylabs.com/nexus/repository/lieberlieber-collaboration-raw/validator-for-ea/release-2023.2.0-alpha/IncQuery%20Validator%20for%20Enterprise%20Architect%202023.2.0-alpha%20Setup.exe" >> $env:GITHUB_OUTPUT
+          echo "download_url=https://build.incquerylabs.com/nexus/repository/lieberlieber-collaboration-raw/validator-for-ea/release-2023.2.0/IncQuery%20Validator%20for%20Enterprise%20Architect%202023.2.0%20Setup.exe" >> $env:GITHUB_OUTPUT
           echo "installer_path=${{ runner.temp }}/IncQuery Validator for Enterprise Architect Setup.exe" >> $env:GITHUB_OUTPUT
         }
 
@@ -247,7 +247,7 @@ runs:
             $severity = $rule.Severity
             $occurrences = $rule.Occurrences
             $description = $rule.Description
-            $ruleName = $rule.'Symbolic name'
+            $ruleName = $rule.'Rule name'
             
             if ( $occurrences -gt 0 )
             {
