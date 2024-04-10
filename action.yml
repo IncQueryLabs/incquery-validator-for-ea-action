@@ -30,6 +30,10 @@ inputs:
     description: "Fail the workflow if there are any findings with the level equal or greater to the specified. Possible values are: 'none' (don't fail on anything), 'debug', 'info', 'warning', 'error', 'fatal'."
     required: false
     default: 'warning'
+  mdgtPaths:
+    description: "Path(s) to the folder(s) where the MDG Technology descriptor XML files are located. Paths are separated by \";\". Only required when using Structural validation."
+    required: false
+    default: ''
 
 runs:
   using: "composite"
@@ -47,13 +51,13 @@ runs:
         {
           echo "IncQuery Validator for Enterprise Architect will be installed."
           echo "need_to_install=true" >> $env:GITHUB_OUTPUT
-          echo "download_url=https://build.incquerylabs.com/nexus/repository/lieberlieber-collaboration-raw/validator-for-ea/release-2023.3.0/IncQuery%20Validator%20for%20Enterprise%20Architect%202023.3.0%20Setup.exe" >> $env:GITHUB_OUTPUT
+          echo "download_url=https://build.incquerylabs.com/nexus/repository/lieberlieber-collaboration-raw/validator-for-ea/release-2024.1.0/IncQuery%20Validator%20for%20Enterprise%20Architect%202024.1.0%20Setup.exe" >> $env:GITHUB_OUTPUT
           echo "installer_path=${{ runner.temp }}/IncQuery Validator for Enterprise Architect Setup.exe" >> $env:GITHUB_OUTPUT
         }
 
     - name: Restore the IncQuery Validator for Enterprise Architect installer from cache
       id: cache-installer-restore
-      uses: actions/cache/restore@v3
+      uses: actions/cache/restore@v4
       if: ${{ steps.validator-state.outputs.need_to_install == 'true' }}
       with:
         path: ${{ steps.validator-state.outputs.installer_path }}
@@ -74,7 +78,7 @@ runs:
     - name: Cache the IncQuery Validator for Enterprise Architect installer
       id: cache-installer-save
       if: ${{ ( steps.cache-installer-restore.outputs.cache-hit != 'true' ) && ( steps.validator-state.outputs.need_to_install == 'true' ) }}
-      uses: actions/cache/save@v3
+      uses: actions/cache/save@v4
       with:
         path: ${{ steps.validator-state.outputs.installer_path }}
         key:  ${{ steps.validator-state.outputs.download_url }}
@@ -103,10 +107,10 @@ runs:
     - name: Run validation
       shell: pwsh
       run: |
-        & 'C:\Program Files\IncQuery Labs\IncQuery Validator for Enterprise Architect\CI\run_validation.ps1' -model '${{ inputs.model_file_path }}' -licenseFile '${{ runner.temp }}/IncQueryValidatorLicense.lic' -outputPath '${{ runner.temp }}/validation_result' -analysisSuite '${{ inputs.analysis_suite }}'
+        & 'C:\Program Files\IncQuery Labs\IncQuery Validator for Enterprise Architect\CI\run_validation.ps1' -model '${{ inputs.model_file_path }}' -licenseFile '${{ runner.temp }}/IncQueryValidatorLicense.lic' -outputPath '${{ runner.temp }}/validation_result' -analysisSuite '${{ inputs.analysis_suite }}' -mdgtPaths '${{ inputs.mdgtPaths }}'
 
     - name: "Archive analysis result"
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: "${{ inputs.analysis_suite }} analysis result"
         path: ${{ runner.temp }}/validation_result/
@@ -120,7 +124,7 @@ runs:
         $summary_csv = Import-Csv -Path "${{ runner.temp }}/validation_result/summary.csv"
         $numRules = $summary_csv.Count
         
-        $msg = "# ![validator_icon](https://github.com/IncQueryLabs/incquery-validator-for-ea-action/assets/39518109/7db6c023-9bae-4e68-ad43-ca92ba84d0e6) IncQuery Validator for Enterprise Architect `r`n"
+        $msg = "# ![validator_icon](https://user-images.githubusercontent.com/39518109/262674793-7db6c023-9bae-4e68-ad43-ca92ba84d0e6.svg) IncQuery Validator for Enterprise Architect `r`n"
         $msg += "Analysis were executed on **${{ inputs.model_file_path }}** with the **${{ inputs.analysis_suite }}** ruleset containing $numRules rules.`r`n`r`n"
         
         $fatals   = $result | where { $_.level.StartsWith("fatal error") }
